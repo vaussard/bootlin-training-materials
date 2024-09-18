@@ -39,6 +39,13 @@
   study these in more details.
 \end{frame}
 
+%\begin{frame}
+%  \frametitle{Types of devices}
+%  \begin{center}
+%    \includegraphics[height=0.9\textheight]{slides/kernel-frameworks/linux_kernel_map.pdf}
+%  \end{center}
+%\end{frame}
+
 \begin{frame}
   \frametitle{Major and minor numbers}
   \begin{itemize}
@@ -367,7 +374,7 @@ static long phantom_ioctl(struct file *file, unsigned int cmd,
 \end{frame}
 
 \begin{frame}[fragile]
-  \frametitle{Ioctl() Example: Application Side}
+  \frametitle{ioctl() Example: Application Side}
 \begin{minted}[fontsize=\footnotesize]{c}
 #include <linux/phantom.h>
 
@@ -388,6 +395,71 @@ int main(void)
     return 0;
 }
 \end{minted}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Allocating a major / minor number}
+  Before registering a character device, it is necessary to obtain a
+  major and minor number:
+  \begin{itemize}
+    \item A major / minor number is stored in an opaque type \ksym{dev_t} (currently a \ksym{u32}).
+          It should not be accessed directly! Instead:
+    \begin{itemize}
+      \item Create a \ksym{dev_t} using \kfunc{MKDEV}.
+      \item Retrieve the major / minor number with \kfunc{MAJOR} and \kfunc{MINOR}.
+    \end{itemize}
+    \item Some major / minor numbers are statically allocated.
+          In this case, \kfunc{register_chrdev_region} is used.
+          %See the list of registered numbers in \kfile{Documentation/admin-guide/devices.txt}.
+          See the list of registered numbers in \kdochtml{admin-guide/devices}.
+    \item It is recommended to allocate a \ksym{dev_t} dynamically instead:
+    \begin{itemize}
+      \item Allocate one (or several) number(s) using \kfunc{alloc_chrdev_region}.
+      \item Release it using \kfunc{unregister_chrdev_region}.
+    \end{itemize}
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Registering a character device}
+  The registration of a character device is done using a \kstruct{cdev}:
+  \begin{itemize}
+    \item Either it can be dynamically allocated with \kfunc{cdev_alloc}.
+    \item Or, if the structure is static, it should be initialized using \kfunc{cdev_init}.
+    \item In both cases, a pointer to the \kstruct{file_operations} is stored inside \kstruct{cdev}.
+  \end{itemize}
+
+  Finally the registration is performed using \kfunc{cdev_add}.
+  When the character device is no longer needed, use \kfunc{cdev_del} to delete it.
+\end{frame}
+
+% other examples:
+%   drivers/char/mem.c
+%   drivers/char/scx200_gpio.c
+%   drivers/misc/phantom.c
+\begin{frame}[fragile]
+  \frametitle{Registering a character device: example}
+\begin{minted}[fontsize=\footnotesize]{c}
+static dev_t first;
+
+static int __init dax_attach(void)
+{
+    ...
+    if (alloc_chrdev_region(&first, 0, 1, DAX_NAME) < 0) {
+        dax_err("alloc_chrdev_region failed");
+        ret = -ENXIO;
+        goto done;
+    }
+    cdev_init(&c_dev, &dax_fops);
+    if (cdev_add(&c_dev, first, 1) == -1) {
+        dax_err("cdev_add failed");
+        ret = -ENXIO;
+        goto cdev_error;
+    }
+    ...
+}
+\end{minted}
+  \small Selected excerpt from \kfile{drivers/sbus/char/oradax.c}
 \end{frame}
 
 \subsection{The concept of kernel frameworks}
@@ -497,103 +569,128 @@ static int xxxfb_probe (struct pci_dev *dev, const struct pci_device_id *ent)
 \end{itemize}
 \end{frame}
 
-\subsection{Device-managed allocations}
+\subsection{The misc subsystem}
 
-\begin{frame}
-  \frametitle{Device managed allocations}
+\begin{frame}{Why a {\em misc} subsystem?}
   \begin{itemize}
-  \item The \code{probe()} function is typically responsible for
-    allocating a significant number of resources: memory, mapping I/O
-    registers, registering interrupt handlers, etc.
-  \item These resource allocations have to be properly freed:
+  \item The kernel offers a large number of {\bf frameworks} covering
+    a wide range of device types: input, network, video, audio,
+    etc.
     \begin{itemize}
-    \item In the \code{probe()} function, in case of failure
-    \item In the \code{remove()} function
+    \item These frameworks allow to factorize common functionality
+      between drivers and offer a consistent API to user space
+      applications.
     \end{itemize}
-  \item This required a lot of failure handling code that was rarely
-    tested
-  \item To solve this problem, {\em device managed} allocations have
-    been introduced.
-  \item The idea is to associate resource allocation with the
-    \code{struct device}, and automatically release those resources
+  \item However, there are some devices that {\bf really do not fit in any
+    of the existing frameworks}.
     \begin{itemize}
-    \item When the device disappears
-    \item When the device is unbound from the driver
+    \item Highly customized devices implemented in a FPGA, or other
+      weird devices for which implementing a complete framework is not
+      useful.
     \end{itemize}
-  \item Functions prefixed by \code{devm_}
-  \item See \kdochtml{driver-api/driver-model/devres} for details
+  \item The drivers for such devices could be implemented directly as
+    raw {\em character drivers} (with \kfunc{cdev_init} and
+    \kfunc{cdev_add}).
+  \item But there is a subsystem that makes this work a little bit
+    easier: the {\bf misc subsystem}.
+    \begin{itemize}
+    \item It is really only a {\bf thin layer} above the {\em character
+        driver} API.
+    \item Another advantage is that devices are integrated in the Device
+        Model (device files appearing in {\em devtmpfs}, which you don't
+	have with raw character devices).
+    \end{itemize}
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Misc subsystem diagram}
+  \begin{center}
+    \includegraphics[width=\textwidth]{slides/kernel-frameworks//misc-subsystem-diagram.pdf}
+  \end{center}
+\end{frame}
+
+\begin{frame}[fragile]{Misc subsystem API (1/2)}
+  \begin{itemize}
+  \item The misc subsystem API mainly provides two functions, to
+    register and unregister {\bf a single} {\em misc device}:
+    \begin{itemize}
+    \item \code{int misc_register(struct miscdevice * misc);}
+    \item \code{void misc_deregister(struct miscdevice *misc);}
+    \end{itemize}
+  \item A {\em misc device} is described by a \kstruct{miscdevice}
+    structure:
+    \begin{minted}[fontsize=\footnotesize]{c}
+struct miscdevice  {
+        int minor;
+        const char *name;
+        const struct file_operations *fops;
+        struct list_head list;
+        struct device *parent;
+        struct device *this_device;
+        const char *nodename;
+        umode_t mode;
+};
+\end{minted}
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{Misc subsystem API (2/2)}
+  The main fields to be filled in \kstruct{miscdevice} are:
+  \begin{itemize}
+  \item \code{minor}, the minor number for the device, or
+    \ksym{MISC_DYNAMIC_MINOR} to get a minor number automatically
+    assigned.
+  \item \code{name}, name of the device, which will be used to create
+    the device node if {\em devtmpfs} is used.
+  \item \code{fops}, pointer to the same \kstruct{file_operations} structure
+    that is used for raw character drivers, describing which functions
+    implement the {\em read}, {\em write}, {\em ioctl}, etc. operations.
+  \item \code{parent}, pointer to the \code{struct device} of the
+    underlying ``physical'' device (platform device, I2C device, etc.)
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{User space API for misc devices}
+  \begin{itemize}
+  \item {\em misc devices} are regular character devices
+  \item The operations they support in user space depends on the
+    operations the kernel driver implements:
+    \begin{itemize}
+    \item The \code{open()} and \code{close()} system calls to
+      open/close the device.
+    \item The \code{read()} and \code{write()} system calls to
+      read/write to/from the device.
+    \item The \code{ioctl()} system call to call some driver-specific
+      operations.
+    \end{itemize}
   \end{itemize}
 \end{frame}
 
 \begin{frame}[fragile]
-  \frametitle{Device managed allocations: memory allocation example}
-  \begin{itemize}
-  \item Normally done with \code{kmalloc(size_t, gfp_t)}, released
-    with \code{kfree(void *)}
-  \item Device managed with \code{devm_kmalloc(struct device *,
-      size_t, gfp_t)}
-  \end{itemize}
-
-  \begin{columns}
-    \column[t]{0.5\textwidth}
-    \begin{block}{Without devm functions}
-\fontsize{6}{6}\selectfont
-    \begin{minted}{c}
-int foo_probe(struct platform_device *pdev)
+  \frametitle{Example of a misc device}
+\begin{minted}[fontsize=\scriptsize]{c}
+static const struct file_operations adi_fops = {
+    .read        = adi_read,
+    .write       = adi_write,
+    ...
+};
+static struct miscdevice adi_miscdev = {
+    .minor = MISC_DYNAMIC_MINOR,
+    .name = KBUILD_MODNAME,
+    .fops = &adi_fops,
+};
+static int __init adi_init(void)
 {
-        struct foo_t *foo = kmalloc(sizeof(struct foo_t),
-                                    GFP_KERNEL);
-        /* Register to framework, store
-         * reference to framework structure in foo */
-        ...
-        if (failure) {
-                kfree(foo);
-                return -EBUSY;
-        }
-        platform_set_drvdata(pdev, foo);
-        return 0;
+    return misc_register(&adi_miscdev);
 }
-
-void foo_remove(struct platform_device *pdev)
+static void __exit adi_exit(void)
 {
-        struct foo_t *foo = platform_get_drvdata(pdev);
-        /* Retrieve framework structure from foo
-           and unregister it */
-        ...
-        kfree(foo);
+    misc_deregister(&adi_miscdev);
 }
-    \end{minted}
-  \end{block}
-    \column[t]{0.5\textwidth}
-    \begin{block}{With devm functions}
-\fontsize{6}{6}\selectfont
-    \begin{minted}{c}
-int foo_probe(struct platform_device *pdev)
-{
-        struct foo_t *foo = devm_kmalloc(&pdev->dev,
-                           sizeof(struct foo_t),
-                           GFP_KERNEL);
-        /* Register to framework, store
-         * reference to framework structure in foo */
-        ...
-        if (failure)
-                return -EBUSY;
-        platform_set_drvdata(pdev, foo);
-        return 0;
-}
-
-void foo_remove(struct platform_device *pdev)
-{
-        struct foo_t *foo = platform_get_drvdata(pdev);
-        /* Retrieve framework structure from foo
-           and unregister it */
-        ...
-        /* foo automatically freed */
-}
-    \end{minted}
-  \end{block}
-\end{columns}
-
+module_init(adi_init);
+module_exit(adi_exit);
+\end{minted}
+  \small Selected excerpt from \kfile{drivers/char/adi.c}
 \end{frame}
 
 \subsection{Driver data structures and links}
