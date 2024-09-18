@@ -1,18 +1,30 @@
-\section{I/O Memory}
+\section{I/O Memory and Ports}
 
 \begin{frame}
-  \frametitle{Memory-Mapped I/O}
-  \begin{columns}
-  \column{0.75\textwidth}
+  \frametitle{Port I/O vs. Memory-Mapped I/O}
   \begin{itemize}
-    \item Same address bus to address memory and I/O device registers
-    \item Access to the I/O device registers using regular instructions
+  \item Memory-Mapped I/O (MMIO)
+    \begin{itemize}
+    \item Same address bus to address memory and I/O devices
+    \item Access to the I/O devices using regular instructions
     \item Most widely used I/O method across the different
       architectures supported by Linux
+    \end{itemize}
+  \item Port I/O (PIO)
+    \begin{itemize}
+    \item Different address spaces for memory and I/O devices
+    \item Uses a special class of CPU instructions to access I/O
+      devices
+    \item Example on x86: IN and OUT instructions
+    \end{itemize}
   \end{itemize}
-  \column{0.25\textwidth}
+\end{frame}
+
+\begin{frame}
+  \frametitle{MMIO vs PIO}
+  \begin{center}
     \includegraphics[width=\textwidth]{slides/kernel-driver-development-io-memory/mmio-vs-pio.pdf}
-  \end{columns}
+  \end{center}
 \end{frame}
 
 \begin{frame}[fragile]
