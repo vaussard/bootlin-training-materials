@@ -12,6 +12,19 @@ fonts-inconsolata fonts-liberation \
 xfonts-scalable lmodern texlive-science texlive-plain-generic \
 texlive-lang-french
 
+Fedora:
+sudo dnf install texlive-appendixnumberbeamer texlive-babel \
+        texlive-colortbl texlive-enumitem texlive-environ texlive-etoolbox \
+        texlive-eurosym texlive-fancyhdr texlive-fmtcount texlive-fontspec \
+        texlive-fp texlive-geometry texlive-hyperref texlive-hyphenat \
+        texlive-listings texlive-makecell texlive-mdframed texlive-minted \
+        texlive-moreverb texlive-overpic texlive-parskip texlive-setspace \
+        texlive-stmaryrd texlive-textpos texlive-titlesec texlive-titling \
+        texlive-ulem texlive-upquote texlive-url texlive-xcolor
+
+(filtered output of:
+git g usepackage | perl -pe "s/\[.*?\]//" | perl -pe "s/.*?usepackage{(.*?)}.*/\1/" | sort -u | perl -pe "s/^/texlive-/" | perl -pe "s/\n/ /")
+
 Then, run 'make help' to see what available targets are.
 
 For example:
