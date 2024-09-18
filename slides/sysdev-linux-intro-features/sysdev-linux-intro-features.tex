@@ -1,4 +1,4 @@
-\ifthenelse{\equal{\training}{linux-kernel}}{
+%\ifthenelse{\equal{\training}{linux-kernel}}{
   \begin{frame}
   \frametitle{Origin}
   \begin{columns}
@@ -24,7 +24,7 @@
       \url{https://bit.ly/2UIa1TD}
     \end{columns}
 \end{frame}
-}{}
+%}{}
 
 \begin{frame}
   \frametitle{Linux kernel in the system}
@@ -62,10 +62,10 @@
         inter-process communication, process management, memory mapping,
         timers, threads, synchronization primitives, etc.
       \end{itemize}
-      \ifthenelse{\equal{\training}{linux-kernel}}{}{
+%      \ifthenelse{\equal{\training}{linux-kernel}}{}{
       \item This interface is stable over time: only new system calls can
         be added by the kernel developers
-      }
+%      }
     \item This system call interface is wrapped by the C library, and
       user space applications usually never make a system call directly
       but rather use the corresponding C library function

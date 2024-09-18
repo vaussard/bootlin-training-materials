@@ -184,9 +184,34 @@
   \end{itemize}
 \end{frame}
 
+\begin{frame}[fragile]
+  \frametitle{Kconfig}
+  Kernel configuration options are defined in \code{Kconfig} files:
+  \begin{itemize}
+  \item There are approximately 1600 Kconfig files throughout the tree (as of v6.1)
+  \item \code{Kconfig} uses a dedicated language, which is documented in
+        the kernel's \href{https://www.kernel.org/doc/html/next/kbuild/kconfig-language.html}{Kconfig Language}.
+  \end{itemize}
+
+  \medskip
+  Example (from \kfile{drivers/tty/serial/8250/Kconfig}):
+  \begin{block}{}
+  \begin{minted}[fontsize=\scriptsize]{text}
+config SERIAL_8250
+        tristate "8250/16550 and compatible serial support"
+        depends on !S390
+        select SERIAL_CORE
+        select SERIAL_MCTRL_GPIO if GPIOLIB
+        help
+          This selects whether you want to include the driver for the standard
+          serial ports.  The standard answer is Y.  People who might say N
+  \end{minted}
+  \end{block}
+\end{frame}
+
 \begin{frame}
   \frametitle{Kernel option types}
-  There are different types of options, defined in \code{Kconfig} files:
+  There are different types of options:
   \begin{itemize}
   \item \code{bool} options, they are either
     \begin{itemize}
@@ -375,6 +400,7 @@ CONFIG_FAT_DEFAULT_CODEPAGE=437
   \code{make}
   \begin{itemize}
     \item Only works from the top kernel source directory
+    \item Equivalent to \code{make all}
     \item Should not be performed as a priviledged user
     \item Run several {\bf j}obs in parallel. Our advice: \code{ncpus * 2} to
       fully load the CPU and I/Os at all times.\\
@@ -408,6 +434,21 @@ CONFIG_FAT_DEFAULT_CODEPAGE=437
   \end{itemize}
 \end{frame}
 
+\begin{frame}[fragile]
+  \frametitle{Kernel compilation: make targets}
+  Instead of building everything, you can build a specific component:
+  \begin{itemize}
+  \item \code{make Image}: uncompressed kernel image
+  \item \code{make zImage}: compressed ARM kernel
+  \item \code{make dtbs}: Device Tree Blobs for enabled boards
+  \item \code{make target.dtb}: a specific Device Tree Blob located in \code{arch/<arch>/boot/dts/target.dtb}
+  \item \code{make dir/file.ko}: a specific module
+  \end{itemize}
+
+  \medskip
+  Refer to \code{make help} for more options.
+\end{frame}
+
 \begin{frame}
   \frametitle{Kernel installation: native case}
   \begin{itemize}
@@ -438,7 +479,7 @@ CONFIG_FAT_DEFAULT_CODEPAGE=437
     kernel image is a single file, easy to handle.
   \item Another reason is that there is no standard way to deploy and
     use the kernel image.
-  \item Therefore making the kernel image available to the target is
+  \item Therefore making the kernel image (\code{zImage} + \code{target.dtb}) available to the target is
     usually manual or done through scripts in build systems.
   \item It is however possible to customize the \code{make install}
     behavior in \code{arch/<arch>/boot/install.sh}
@@ -460,7 +501,7 @@ CONFIG_FAT_DEFAULT_CODEPAGE=437
       structure as in the sources.
     \item \code{modules.alias}, \code{modules.alias.bin}\\
       Aliases for module loading utilities
-      \ifthenelse{\equal{\training}{linux-kernel}}{, see next slide}{}
+      %\ifthenelse{\equal{\training}{linux-kernel}}{, see next slide}{}
     \item \code{modules.dep}, \code{modules.dep.bin}\\
         Module dependencies. Kernel modules can depend on other modules,
         based on the symbols (functions and data structures) they use.
@@ -473,13 +514,13 @@ CONFIG_FAT_DEFAULT_CODEPAGE=437
   \end{itemize}
 \end{frame}
 
-\ifthenelse{\equal{\training}{linux-kernel}}{
-\begin{frame}{Module alias: {\em modules.alias}}
-  \begin{center}
-    \includegraphics[width=\textwidth]{slides/kernel-hw-devices/module-alias-usage.pdf}
-  \end{center}
-\end{frame}
-}{}
+%\ifthenelse{\equal{\training}{linux-kernel}}{
+%\begin{frame}{Module alias: {\em modules.alias}}
+%  \begin{center}
+%    \includegraphics[width=\textwidth]{slides/kernel-hw-devices/module-alias-usage.pdf}
+%  \end{center}
+%\end{frame}
+%}{}
 
 \begin{frame}
   \frametitle{Module installation: embedded case}
