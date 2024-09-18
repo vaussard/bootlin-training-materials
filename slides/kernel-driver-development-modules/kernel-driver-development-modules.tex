@@ -161,7 +161,7 @@ MODULE_AUTHOR("William Shakespeare");
   \frametitle{Compiling an out-of-tree module 1/2}
   \begin{itemize}
   \item The below \code{Makefile} should be reusable for any single-file
-    out-of-tree Linux module
+  out-of-tree Linux module (see \href{https://docs.kernel.org/kbuild/modules.html}{Building External Modules} for other options)
   \item The source file is \code{hello.c}
   \item Just run \code{make} to build the \code{hello.ko} file
   \end{itemize}
@@ -348,12 +348,12 @@ Modules parameter arrays are also possible with
 \kfunc{module_param_array}.
 \end{frame}
 
-\setuplabframe
-{Writing modules}
-{
-  \begin{itemize}
-  \item Create, compile and load your first module
-  \item Add module parameters
-  \item Access kernel internals from your module
-  \end{itemize}
-}
+%\setuplabframe
+%{Writing modules}
+%{
+%  \begin{itemize}
+%  \item Create, compile and load your first module
+%  \item Add module parameters
+%  \item Access kernel internals from your module
+%  \end{itemize}
+%}

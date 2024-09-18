@@ -442,6 +442,96 @@ module_platform_driver(serial_imx_driver);
   \end{itemize}
 \end{frame}
 
+\begin{frame}{{\tt compatible} property and Linux kernel drivers}
+  \begin{columns}
+    \column{0.6\textwidth}
+    \begin{itemize}
+    \item Linux identifies as {\bf platform devices}:
+      \begin{itemize}
+      \item Top-level DT nodes with a \code{compatible} string
+      \item Sub-nodes of \code{simple-bus}
+        \begin{itemize}
+        \item Instantiated automatically at boot time
+        \end{itemize}
+      \end{itemize}
+    \item Sub-nodes of I2C controllers $\rightarrow$ {\em I2C devices}
+    \item Sub-nodes of SPI controllers $\rightarrow$ {\em SPI devices}
+    \item Each Linux driver has a table of compatible strings it supports
+      \begin{itemize}
+      \item \kstruct{of_device_id}\code{[]}
+      \end{itemize}
+    \item When a DT node compatible string matches a given driver, the
+      device is {\em bound} to that driver.
+    \end{itemize}
+    \column{0.4\textwidth}
+    \includegraphics[width=\textwidth]{slides/kernel-hw-devices/dt-to-devices.pdf}
+  \end{columns}
+\end{frame}
+
+\begin{frame}[fragile]{Matching with drivers in Linux: platform driver}
+  \begin{block}{\kfile{drivers/i2c/busses/i2c-omap.c}}
+    {\tiny
+\begin{minted}{c}
+static const struct of_device_id omap_i2c_of_match[] = {
+        {
+                .compatible = "ti,omap4-i2c",
+                .data = &omap4_pdata,
+        },
+        {
+                .compatible = "ti,omap3-i2c",
+                .data = &omap3_pdata,
+        },
+        [...]
+        { },
+};
+MODULE_DEVICE_TABLE(of, omap_i2c_of_match);
+
+[...]
+
+static struct platform_driver omap_i2c_driver = {
+        .probe          = omap_i2c_probe,
+        .remove         = omap_i2c_remove,
+        .driver         = {
+                .name   = "omap_i2c",
+                .pm     = &omap_i2c_pm_ops,
+                .of_match_table = of_match_ptr(omap_i2c_of_match),
+        },
+};
+\end{minted}
+    }
+  \end{block}
+\end{frame}
+
+\begin{frame}[fragile]{Matching with drivers in Linux: I2C driver}
+  \begin{block}{\kfile{sound/soc/codecs/cs42l51.c}}
+    {\tiny
+\begin{minted}{c}
+const struct of_device_id cs42l51_of_match[] = {
+        { .compatible = "cirrus,cs42l51", },
+        { }
+};
+MODULE_DEVICE_TABLE(of, cs42l51_of_match);
+\end{minted}
+    }
+  \end{block}
+  \begin{block}{\kfile{sound/soc/codecs/cs42l51-i2c.c}}
+    {\tiny
+\begin{minted}{c}
+static struct i2c_driver cs42l51_i2c_driver = {
+        .driver = {
+                .name = "cs42l51",
+                .of_match_table = cs42l51_of_match,
+                .pm = &cs42l51_pm_ops,
+        },
+        .probe = cs42l51_i2c_probe,
+        .remove = cs42l51_i2c_remove,
+        .id_table = cs42l51_i2c_id,
+};
+\end{minted}
+    }
+  \end{block}
+\end{frame}
+
 \begin{frame}
   \frametitle{Using additional hardware resources}
   \begin{itemize}

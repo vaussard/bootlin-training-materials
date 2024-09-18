@@ -23,6 +23,21 @@
 \end{frame}
 
 \begin{frame}
+  \frametitle{Useful macros}
+  \begin{itemize}
+   \item Most useful: \kfunc{container_of}, \kfunc{ARRAY_SIZE}
+   \item Bit manipulation: \kfunc{BIT}, \kfunc{BIT_MASK}, \kfunc{GENMASK}
+   \item Math: \kfunc{DIV_ROUND_UP}, \kfunc{abs},...
+   \item Endianness: \kfunc{cpu_to_le32}, \kfunc{cpu_to_be32},...
+   \item Build-time assert: \kfunc{BUILD_BUG_ON}, \kfunc{BUILD_BUG_ON_MSG},...
+   \item Run-time assert: \kfunc{WARN}, \kfunc{WARN_ON},...
+   \item Kconfig: \kfunc{IS_ENABLED}, \kfunc{IS_BUILTIN}, \kfunc{IS_MODULE},...
+   \item And many more, be curious !
+  \end{itemize}
+
+\end{frame}
+
+\begin{frame}
   \frametitle{Linked lists}
   \begin{itemize}
   \item Convenient linked-list facility in \kfile{include/linux/list.h}

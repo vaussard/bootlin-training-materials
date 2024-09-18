@@ -148,6 +148,30 @@ $ dtc -I dtb -O dts foo.dtb
   \end{columns}
 \end{frame}
 
+%% FVD: copy/pasted from slides/sysdev-hw-devices/sysdev-hw-devices.tex
+\begin{frame}{Device Tree: using the blob}
+  \begin{columns}
+    \column{0.6\textwidth}
+    \begin{itemize}
+    \item Can be {\bf linked directly} inside a bootloader binary
+      \begin{itemize}
+      \item For example: U-Boot, Barebox
+      \end{itemize}
+    \item Can be {\bf passed} to the operating system by the bootloader
+      \begin{itemize}
+      \item Most common mechanism for the Linux kernel
+      \item U-Boot: \code{boot[z,i,m] <kernel-addr> - <dtb-addr>}
+      \item The bootloader can adjust the DTB before passing it to the
+        kernel
+      \end{itemize}
+    \item The DTB parsing can be done using \code{libfdt}, or ad-hoc
+      code
+    \end{itemize}
+    \column{0.4\textwidth}
+    \includegraphics[height=0.8\textheight]{slides/kernel-hw-devices/ram.pdf}
+  \end{columns}
+\end{frame}
+
 \begin{frame}{Where are Device Tree Sources located?}
   \begin{itemize}
   \item Even though they are OS-agnostic, {\bf no central and
@@ -190,6 +214,169 @@ $ dtc -I dtb -O dts foo.dtb
   \end{columns}
 \end{frame}
 
+%\begin{frame}[fragile]{DT overall structure: simplified example}
+%  \begin{columns}
+%    \column{0.6\textwidth}
+%    \begin{onlyenv}<1>
+%      \begin{block}{}
+%\begin{minted}[fontsize=\tiny]{perl}
+%/ {
+%  #address-cells = <1>;
+%  #size-cells = <1>;
+%  model = "TI AM335x BeagleBone Black";
+%  compatible = "ti,am335x-bone-black", "ti,am335x-bone", "ti,am33xx";
+%
+%  cpus { ... };
+%  memory@80000000 { ... };
+%  chosen { ... };
+%  ocp {
+%    intc: interrupt-controller@48200000 { ... };
+%    usb0: usb@47401300 { ... };
+%    l4_per: interconnect@44c00000 {
+%      i2c0: i2c@40012000 { ... };
+%    };
+%  };
+%};
+%\end{minted}
+%      \end{block}
+%    \end{onlyenv}
+%    \begin{onlyenv}<2>
+%      \begin{block}{}
+%\begin{minted}[fontsize=\tiny]{perl}
+%/ {
+%  cpus {
+%    #address-cells = <1>;
+%    #size-cells = <0>;
+%    cpu0: cpu@0 {
+%      compatible = "arm,cortex-a8";
+%      enable-method = "ti,am3352";
+%      device_type = "cpu";
+%      reg = <0>;
+%    };
+%  };
+%
+%  memory@0x80000000 {
+%    device_type = "memory";
+%    reg = <0x80000000 0x10000000>; /* 256 MB */
+%  };
+%
+%  chosen {
+%    bootargs = "";
+%    stdout-path = &uart0;
+%  };
+%
+%  ocp { ... };
+%};
+%\end{minted}
+%      \end{block}
+%    \end{onlyenv}
+%    \begin{onlyenv}<3>
+%      \begin{block}{}
+%\begin{minted}[fontsize=\tiny]{perl}
+%/ {
+%  cpus { ... };
+%  memory@0x80000000 { ... };
+%  chosen { ... };
+%  ocp {
+%
+%    intc: interrupt-controller@48200000 {
+%      compatible = "ti,am33xx-intc";
+%      interrupt-controller;
+%      #interrupt-cells = <1>;
+%      reg = <0x48200000 0x1000>;
+%    };
+%
+%    usb0: usb@47401300 {
+%      compatible = "ti,musb-am33xx";
+%      reg = <0x1400 0x400>, <0x1000 0x200>;
+%      reg-names = "mc", "control";
+%      interrupts = <18>;
+%      dr_mode = "otg";
+%      dmas = <&cppi41dma  0 0 &cppi41dma  1 0 ...>;
+%      status = "okay";
+%    };
+%
+%    l4_per: interconnect@44c00000 {
+%      i2c0: i2c@40012000 { ... };
+%    };
+%  };
+%};
+%\end{minted}
+%      \end{block}
+%    \end{onlyenv}
+%    \begin{onlyenv}<4>
+%      \begin{block}{}
+%\begin{minted}[fontsize=\tiny]{perl}
+%/ {
+%  cpus { ... };
+%  memory@0x80000000 { ... };
+%  chosen { ... };
+%
+%  ocp {
+%    compatible = "simple-pm-bus";
+%    clocks = <&l3_clkctrl AM3_L3_L3_MAIN_CLKCTRL 0>;
+%    clock-names = "fck";
+%    #address-cells = <1>;
+%    #size-cells = <1>;
+%
+%    intc: interrupt-controller@48200000 { ... };
+%    usb0: usb@47401300 { ... };
+%
+%    l4_per: interconnect@44c00000 {
+%      compatible = "ti,am33xx-l4-wkup", "simple-pm-bus";
+%      reg = <0x44c00000 0x800>, <0x44c00800 0x800>,
+%            <0x44c01000 0x400>, <0x44c01400 0x400>;
+%      reg-names = "ap", "la", "ia0", "ia1";
+%      #address-cells = <1>;
+%      #size-cells = <1>;
+%
+%      i2c0: i2c@40012000 { ... };
+%    };
+%  };
+%};
+%\end{minted}
+%      \end{block}
+%    \end{onlyenv}
+%    \begin{onlyenv}<5>
+%      \begin{block}{}
+%\begin{minted}[fontsize=\tiny]{perl}
+%/ {
+%  cpus { ... };
+%  memory@0x80000000 { ... };
+%  chosen { ... };
+%  ocp {
+%    intc: interrupt-controller@48200000 { ... };
+%    usb0: usb@47401300 { ... };
+%    l4_per: interconnect@44c00000 {
+%
+%      i2c0: i2c@40012000 {
+%        compatible = "ti,omap4-i2c";
+%        #address-cells = <1>;
+%        #size-cells = <0>;
+%        reg = <0x0 0x1000>;
+%        interrupts = <70>;
+%        status = "okay";
+%        pinctrl-names = "default";
+%        pinctrl-0 = <&i2c0_pins>;
+%        clock-frequency = <400000>;
+%
+%        baseboard_eeprom: eeprom@50 {
+%          compatible = "atmel,24c256";
+%          reg = <0x50>;
+%        };
+%      };
+%    };
+%  };
+%};
+%\end{minted}
+%      \end{block}
+%    \end{onlyenv}
+%    \column{0.4\textwidth}
+%    \includegraphics[width=\textwidth]{slides/kernel-hw-devices/simple-hardware.pdf}
+%  \end{columns}
+%\end{frame}
+
+%% FVD: copy/pasted from slides/sysdev-hw-devices/sysdev-hw-devices.tex
 \begin{frame}[fragile]{DT overall structure: simplified example}
   \begin{columns}
     \column{0.6\textwidth}
@@ -199,18 +386,16 @@ $ dtc -I dtb -O dts foo.dtb
 / {
   #address-cells = <1>;
   #size-cells = <1>;
-  model = "TI AM335x BeagleBone Black";
-  compatible = "ti,am335x-bone-black", "ti,am335x-bone", "ti,am33xx";
+  model = "STMicroelectronics STM32MP157C-DK2 Discovery Board";
+  compatible = "st,stm32mp157c-dk2", "st,stm32mp157";
 
   cpus { ... };
-  memory@80000000 { ... };
+  memory@0 { ... };
   chosen { ... };
-  ocp {
-    intc: interrupt-controller@48200000 { ... };
-    usb0: usb@47401300 { ... };
-    l4_per: interconnect@44c00000 {
-      i2c0: i2c@40012000 { ... };
-    };
+  intc: interrupt-controller@a0021000 { ... };
+  soc {
+    i2c1: i2c@40012000 { ... };
+    ethernet0: ethernet@5800a000 { ... };
   };
 };
 \end{minted}
@@ -224,24 +409,27 @@ $ dtc -I dtb -O dts foo.dtb
     #address-cells = <1>;
     #size-cells = <0>;
     cpu0: cpu@0 {
-      compatible = "arm,cortex-a8";
-      enable-method = "ti,am3352";
+      compatible = "arm,cortex-a7";
+      clock-frequency = <650000000>;
       device_type = "cpu";
       reg = <0>;
     };
+
+    cpu1: cpu@1 {
+      compatible = "arm,cortex-a7";
+      clock-frequency = <650000000>;
+      device_type = "cpu";
+      reg = <1>;
+    };
   };
 
-  memory@0x80000000 {
-    device_type = "memory";
-    reg = <0x80000000 0x10000000>; /* 256 MB */
+  memory@0 { ... };
+  chosen { ... };
+  intc: interrupt-controller@a0021000 { ... };
+  soc {
+    i2c1: i2c@40012000 { ... };
+    ethernet0: ethernet@5800a000 { ... };
   };
-
-  chosen {
-    bootargs = "";
-    stdout-path = &uart0;
-  };
-
-  ocp { ... };
 };
 \end{minted}
       \end{block}
@@ -251,30 +439,19 @@ $ dtc -I dtb -O dts foo.dtb
 \begin{minted}[fontsize=\tiny]{perl}
 / {
   cpus { ... };
-  memory@0x80000000 { ... };
-  chosen { ... };
-  ocp {
+  memory@0 {
+    device_type = "memory";
+    reg = <0x0 0x20000000>;
+  };
 
-    intc: interrupt-controller@48200000 {
-      compatible = "ti,am33xx-intc";
-      interrupt-controller;
-      #interrupt-cells = <1>;
-      reg = <0x48200000 0x1000>;
-    };
-
-    usb0: usb@47401300 {
-      compatible = "ti,musb-am33xx";
-      reg = <0x1400 0x400>, <0x1000 0x200>;
-      reg-names = "mc", "control";
-      interrupts = <18>;
-      dr_mode = "otg";
-      dmas = <&cppi41dma  0 0 &cppi41dma  1 0 ...>;
-      status = "okay";
-    };
-
-    l4_per: interconnect@44c00000 {
-      i2c0: i2c@40012000 { ... };
-    };
+  chosen {
+    bootargs = "";
+    stdout-path = "serial0:115200n8";
+  };
+  intc: interrupt-controller@a0021000 { ... };
+  soc {
+    i2c1: i2c@40012000 { ... };
+    ethernet0: ethernet@5800a000 { ... };
   };
 };
 \end{minted}
@@ -285,29 +462,25 @@ $ dtc -I dtb -O dts foo.dtb
 \begin{minted}[fontsize=\tiny]{perl}
 / {
   cpus { ... };
-  memory@0x80000000 { ... };
+  memory@0 { ... };
   chosen { ... };
 
-  ocp {
-    compatible = "simple-pm-bus";
-    clocks = <&l3_clkctrl AM3_L3_L3_MAIN_CLKCTRL 0>;
-    clock-names = "fck";
+  intc: interrupt-controller@a0021000 {
+    compatible = "arm,cortex-a7-gic";
+    #interrupt-cells = <3>;
+    interrupt-controller;
+    reg = <0xa0021000 0x1000>,
+          <0xa0022000 0x2000>;
+  };
+
+  soc {
+    compatible = "simple-bus";
     #address-cells = <1>;
     #size-cells = <1>;
+    interrupt-parent = <&intc>;
 
-    intc: interrupt-controller@48200000 { ... };
-    usb0: usb@47401300 { ... };
-
-    l4_per: interconnect@44c00000 {
-      compatible = "ti,am33xx-l4-wkup", "simple-pm-bus";
-      reg = <0x44c00000 0x800>, <0x44c00800 0x800>,
-            <0x44c01000 0x400>, <0x44c01400 0x400>;
-      reg-names = "ap", "la", "ia0", "ia1";
-      #address-cells = <1>;
-      #size-cells = <1>;
-
-      i2c0: i2c@40012000 { ... };
-    };
+    i2c1: i2c@40012000 { ... };
+    ethernet0: ethernet@5800a000 { ... };
   };
 };
 \end{minted}
@@ -318,27 +491,58 @@ $ dtc -I dtb -O dts foo.dtb
 \begin{minted}[fontsize=\tiny]{perl}
 / {
   cpus { ... };
-  memory@0x80000000 { ... };
+  memory@0 { ... };
   chosen { ... };
-  ocp {
-    intc: interrupt-controller@48200000 { ... };
-    usb0: usb@47401300 { ... };
-    l4_per: interconnect@44c00000 {
+  intc: interrupt-controller@a0021000 { ... };
+  soc {
+    i2c1: i2c@40012000 {
+      compatible = "st,stm32mp15-i2c";
+      reg = <0x40012000 0x400>;
+      interrupts = <GIC_SPI 31 IRQ_TYPE_LEVEL_HIGH>,
+                   <GIC_SPI 32 IRQ_TYPE_LEVEL_HIGH>;
+      #address-cells = <1>;
+      #size-cells = <0>;
+      status = "okay";
 
-      i2c0: i2c@40012000 {
-        compatible = "ti,omap4-i2c";
+      cs42l51: cs42l51@4a {
+        compatible = "cirrus,cs42l51";
+        reg = <0x4a>;
+        reset-gpios = <&gpiog 9 GPIO_ACTIVE_LOW>;
+        status = "okay";
+      };
+    };
+    ethernet0: ethernet@5800a000 { ... };
+  };
+};
+\end{minted}
+      \end{block}
+    \end{onlyenv}
+    \begin{onlyenv}<6>
+      \begin{block}{}
+\begin{minted}[fontsize=\tiny]{perl}
+/ {
+  cpus { ... };
+  memory@0 { ... };
+  chosen { ... };
+  intc: interrupt-controller@a0021000 { ... };
+  soc {
+    compatible = "simple-bus";
+    ...
+    interrupt-parent = <&intc>;
+    i2c1: i2c@40012000 { ... };
+
+    ethernet0: ethernet@5800a000 {
+      compatible = "st,stm32mp1-dwmac", "snps,dwmac-4.20a";
+      reg = <0x5800a000 0x2000>;
+      interrupts-extended = <&intc GIC_SPI 61 IRQ_TYPE_LEVEL_HIGH>;
+      status = "okay";
+
+      mdio0 {
         #address-cells = <1>;
         #size-cells = <0>;
-        reg = <0x0 0x1000>;
-        interrupts = <70>;
-        status = "okay";
-        pinctrl-names = "default";
-        pinctrl-0 = <&i2c0_pins>;
-        clock-frequency = <400000>;
-
-        baseboard_eeprom: eeprom@50 {
-          compatible = "atmel,24c256";
-          reg = <0x50>;
+        compatible = "snps,dwmac-mdio";
+        phy0: ethernet-phy@0 {
+          reg = <0>;
         };
       };
     };
@@ -382,6 +586,81 @@ $ dtc -I dtb -O dts foo.dtb
   \end{center}
 \end{frame}
 
+%\begin{frame}[fragile]{Inheritance and labels}
+%
+%  \begin{columns}[t]
+%    \column{0.5\textwidth}
+%    Doing:
+%    \begin{block}{soc.dtsi}
+%      {\tiny
+%\begin{minted}{perl}
+%/ {
+%  ocp {
+%    uart0: serial@0 {
+%      compatible = "ti,am3352-uart", "ti,omap3-uart";
+%      reg = <0x0 0x1000>;
+%      status = "disabled";
+%    };
+%  };
+%};
+%\end{minted}
+%      }
+%    \end{block}
+%
+%    \begin{block}{board.dts}
+%      {\tiny
+%\begin{minted}{perl}
+%#include "soc.dtsi"
+%
+%/ {
+%  ocp {
+%    serial@0 {
+%      status = "okay";
+%    };
+%  };
+%};
+%\end{minted}
+%      }
+%    \end{block}
+%
+%    \column{0.5\textwidth}
+%    \begin{onlyenv}<2>
+%    Is exactly equivalent to:
+%
+%    \begin{block}{soc.dtsi}
+%      {\tiny
+%\begin{minted}{perl}
+%/ {
+%  ocp {
+%    uart0: serial@0 {
+%      compatible = "ti,am3352-uart", "ti,omap3-uart";
+%      reg = <0x0 0x1000>;
+%      status = "disabled";
+%    };
+%  };
+%};
+%\end{minted}
+%      }
+%    \end{block}
+%
+%    \begin{block}{board.dts}
+%      {\tiny
+%\begin{minted}{perl}
+%#include "soc.dtsi"
+%
+%&uart0 {
+%  status = "okay";
+%};
+%\end{minted}
+%        }
+%      \end{block}
+%
+%      $\rightarrow$ this solution is now often preferred
+%      \end{onlyenv}
+%  \end{columns}
+%
+%\end{frame}
+
 \begin{frame}[fragile]{Inheritance and labels}
 
   \begin{columns}[t]
@@ -391,10 +670,10 @@ $ dtc -I dtb -O dts foo.dtb
       {\tiny
 \begin{minted}{perl}
 / {
-  ocp {
-    uart0: serial@0 {
-      compatible = "ti,am3352-uart", "ti,omap3-uart";
-      reg = <0x0 0x1000>;
+  soc {
+    usart1: serial@5c000000 {
+      compatible = "st,stm32h7-uart";
+      reg = <0x5c000000 0x400>;
       status = "disabled";
     };
   };
@@ -409,8 +688,8 @@ $ dtc -I dtb -O dts foo.dtb
 #include "soc.dtsi"
 
 / {
-  ocp {
-    serial@0 {
+  soc {
+    serial@5c000000 {
       status = "okay";
     };
   };
@@ -427,10 +706,10 @@ $ dtc -I dtb -O dts foo.dtb
       {\tiny
 \begin{minted}{perl}
 / {
-  ocp {
-    uart0: serial@0 {
-      compatible = "ti,am3352-uart", "ti,omap3-uart";
-      reg = <0x0 0x1000>;
+  soc {
+    usart1: serial@5c000000 {
+      compatible = "st,stm32h7-uart";
+      reg = <0x5c000000 0x400>;
       status = "disabled";
     };
   };
@@ -444,7 +723,7 @@ $ dtc -I dtb -O dts foo.dtb
 \begin{minted}{perl}
 #include "soc.dtsi"
 
-&uart0 {
+&usart1 {
   status = "okay";
 };
 \end{minted}
@@ -472,6 +751,7 @@ $ dtc -I dtb -O dts foo.dtb
     \item For a given piece of HW, Device Tree should be the same for
       U-Boot, FreeBSD or Linux
     \item There should be no need to change the Device Tree when updating the OS
+    \item The Device Tree is de facto part of the kernel ABI
     \end{itemize}
   \item Describe {\bf integration of hardware components}, not the internals
     of hardware components
@@ -702,38 +982,38 @@ examples:
   \end{itemize}
 \end{frame}
 
-\begin{frame}[fragile]{The properties}
-  Device tree properties can be:
-  \begin{itemize}
-  \item Fully generic
-    \begin{itemize}
-    \item Their meaning is usually described in one place: the core DT
-      schema available at \url{https://github.com/devicetree-org/dt-schema}.
-    \item \code{compatible}, \code{reg},
-      \usebeamercolor[fg]{code}\path{#address-cells}, etc
-    \end{itemize}
-  \item Subsystem specific and cover generic consumer bindings
-    \begin{itemize}
-    \item Their meaning is either described in the \code{dt-schema}
-      Github or under \kfile{Documentation/device-tree/bindings}.
-    \item \code{clocks}, \code{interrupts}, \code{regulators}, etc
-    \end{itemize}
-  \item Subsystem specific
-    \begin{itemize}
-    \item All devices of a certain class may use them, often starting
-      with the class name
-    \item \code{spi-cpha}, \code{i2c-scl-internal-delay-ns}, \code{nand-ecc-engine},
-      \code{mac-address}, etc
-    \end{itemize}
-  \item Vendor/device specific
-    \begin{itemize}
-    \item To describe uncommon or very specific properties
-    \item Always described in the device's binding file and prefixed with \code{<vendor>,}
-    \item \code{ti,hwmods}, \code{xlnx,num-channels}, \code{nxp,tx-output-mode}, etc
-    \end{itemize}
-  \item Some of them are deprecated, watch out the bindings!
-  \end{itemize}
-\end{frame}
+%\begin{frame}[fragile]{The properties}
+%  Device tree properties can be:
+%  \begin{itemize}
+%  \item Fully generic
+%    \begin{itemize}
+%    \item Their meaning is usually described in one place: the core DT
+%      schema available at \url{https://github.com/devicetree-org/dt-schema}.
+%    \item \code{compatible}, \code{reg},
+%      \usebeamercolor[fg]{code}\path{#address-cells}, etc
+%    \end{itemize}
+%  \item Subsystem specific and cover generic consumer bindings
+%    \begin{itemize}
+%    \item Their meaning is either described in the \code{dt-schema}
+%      Github or under \kfile{Documentation/device-tree/bindings}.
+%    \item \code{clocks}, \code{interrupts}, \code{regulators}, etc
+%    \end{itemize}
+%  \item Subsystem specific
+%    \begin{itemize}
+%    \item All devices of a certain class may use them, often starting
+%      with the class name
+%    \item \code{spi-cpha}, \code{i2c-scl-internal-delay-ns}, \code{nand-ecc-engine},
+%      \code{mac-address}, etc
+%    \end{itemize}
+%  \item Vendor/device specific
+%    \begin{itemize}
+%    \item To describe uncommon or very specific properties
+%    \item Always described in the device's binding file and prefixed with \code{<vendor>,}
+%    \item \code{ti,hwmods}, \code{xlnx,num-channels}, \code{nxp,tx-output-mode}, etc
+%    \end{itemize}
+%  \item Some of them are deprecated, watch out the bindings!
+%  \end{itemize}
+%\end{frame}
 
 \begin{frame}{The {\tt compatible} property}
   \begin{itemize}
@@ -758,96 +1038,6 @@ examples:
   \item Special value: \code{simple-bus} $\rightarrow$ bus where all
     sub-nodes are memory-mapped devices
   \end{itemize}
-\end{frame}
-
-\begin{frame}{{\tt compatible} property and Linux kernel drivers}
-  \begin{columns}
-    \column{0.6\textwidth}
-    \begin{itemize}
-    \item Linux identifies as {\bf platform devices}:
-      \begin{itemize}
-      \item Top-level DT nodes with a \code{compatible} string
-      \item Sub-nodes of \code{simple-bus}
-        \begin{itemize}
-        \item Instantiated automatically at boot time
-        \end{itemize}
-      \end{itemize}
-    \item Sub-nodes of I2C controllers $\rightarrow$ {\em I2C devices}
-    \item Sub-nodes of SPI controllers $\rightarrow$ {\em SPI devices}
-    \item Each Linux driver has a table of compatible strings it supports
-      \begin{itemize}
-      \item \kstruct{of_device_id}\code{[]}
-      \end{itemize}
-    \item When a DT node compatible string matches a given driver, the
-      device is {\em bound} to that driver.
-    \end{itemize}
-    \column{0.4\textwidth}
-    \includegraphics[width=\textwidth]{slides/kernel-hw-devices/dt-to-devices.pdf}
-  \end{columns}
-\end{frame}
-
-\begin{frame}[fragile]{Matching with drivers in Linux: platform driver}
-  \begin{block}{\kfile{drivers/i2c/busses/i2c-omap.c}}
-    {\tiny
-\begin{minted}{c}
-static const struct of_device_id omap_i2c_of_match[] = {
-        {
-                .compatible = "ti,omap4-i2c",
-                .data = &omap4_pdata,
-        },
-        {
-                .compatible = "ti,omap3-i2c",
-                .data = &omap3_pdata,
-        },
-        [...]
-        { },
-};
-MODULE_DEVICE_TABLE(of, omap_i2c_of_match);
-
-[...]
-
-static struct platform_driver omap_i2c_driver = {
-        .probe          = omap_i2c_probe,
-        .remove         = omap_i2c_remove,
-        .driver         = {
-                .name   = "omap_i2c",
-                .pm     = &omap_i2c_pm_ops,
-                .of_match_table = of_match_ptr(omap_i2c_of_match),
-        },
-};
-\end{minted}
-    }
-  \end{block}
-\end{frame}
-
-\begin{frame}[fragile]{Matching with drivers in Linux: I2C driver}
-  \begin{block}{\kfile{sound/soc/codecs/cs42l51.c}}
-    {\tiny
-\begin{minted}{c}
-const struct of_device_id cs42l51_of_match[] = {
-        { .compatible = "cirrus,cs42l51", },
-        { }
-};
-MODULE_DEVICE_TABLE(of, cs42l51_of_match);
-\end{minted}
-    }
-  \end{block}
-  \begin{block}{\kfile{sound/soc/codecs/cs42l51-i2c.c}}
-    {\tiny
-\begin{minted}{c}
-static struct i2c_driver cs42l51_i2c_driver = {
-        .driver = {
-                .name = "cs42l51",
-                .of_match_table = cs42l51_of_match,
-                .pm = &cs42l51_pm_ops,
-        },
-        .probe = cs42l51_i2c_probe,
-        .remove = cs42l51_i2c_remove,
-        .id_table = cs42l51_i2c_id,
-};
-\end{minted}
-    }
-  \end{block}
 \end{frame}
 
 \begin{frame}[fragile]{{\tt reg} property}
@@ -1349,13 +1539,13 @@ uart0@4000c000 {
   \end{columns}
 \end{frame}
 
-\setuplabframe
-{Describing hardware devices}
-{
-  \begin{itemize}
-  \item Browse and update Device Trees.
-  \item Use GPIO LEDs.
-  \item Modify the Device Tree to enable an I2C controller and describe
-    an I2C device.
-  \end{itemize}
-}
+%\setuplabframe
+%{Describing hardware devices}
+%{
+%  \begin{itemize}
+%  \item Browse and update Device Trees.
+%  \item Use GPIO LEDs.
+%  \item Modify the Device Tree to enable an I2C controller and describe
+%    an I2C device.
+%  \end{itemize}
+%}
