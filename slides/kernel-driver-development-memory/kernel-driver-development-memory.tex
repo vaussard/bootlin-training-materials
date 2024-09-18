@@ -71,8 +71,9 @@
 \begin{frame}
   \frametitle{Physical/virtual memory mapping on 64-bit systems (4kiB-pages)}
   \begin{center}
-    \includegraphics[height=0.8\textheight]{slides/kernel-driver-development-memory/memory-mapping-64b.pdf}
+    \includegraphics[height=0.7\textheight]{slides/kernel-driver-development-memory/memory-mapping-64b.pdf}
   \end{center}
+  See also the documentation in \kdochtml{arch/x86/x86_64/mm}
 \end{frame}
 
 \begin{frame}
@@ -209,6 +210,11 @@
       allows to access emergency pools, but can fail if no free
       memory is readily available.
     \end{itemize}
+  \item \ksym{GFP_DMA}
+    \begin{itemize}
+    \item Allocates memory in an area of the physical memory usable for
+      DMA transfers.
+    \end{itemize}
   \item Others are defined in \kfile{include/linux/gfp_types.h}.\\
       See also the documentation in \kdochtml{core-api/memory-allocation}
   \end{itemize}
@@ -248,7 +254,7 @@
   a SLAB allocator in the Linux kernel. A particular implementation
   is chosen at configuration time.
   \begin{itemize}
-  \item \kconfig{CONFIG_SLAB}: legacy but now deprecated
+  \item \kconfig{CONFIG_SLAB}: legacy but now deprecated (and removed in Linux 6.8)
   \item \kconfig{CONFIG_SLUB}: the default allocated, scaling better and creating less
         fragmentation than previous implementations.
   \item \kconfig{CONFIG_SLUB_TINY}: configure SLUB to achieve minimal memory
@@ -331,6 +337,34 @@ kfree(tprops);
   \end{itemize}
 \end{frame}
 
+%\subsection{Device-managed allocations}
+
+\begin{frame}
+  \frametitle{Device managed allocations}
+  \begin{itemize}
+  \item The \code{probe()} function is typically responsible for
+    allocating a significant number of resources: memory, mapping I/O
+    registers, registering interrupt handlers, etc.
+  \item These resource allocations have to be properly freed:
+    \begin{itemize}
+    \item In the \code{probe()} function, in case of failure
+    \item In the \code{remove()} function
+    \end{itemize}
+  \item This required a lot of failure handling code that was rarely
+    tested
+  \item To solve this problem, {\em device managed} allocations have
+    been introduced.
+  \item The idea is to associate resource allocation with the
+    \code{struct device}, and automatically release those resources
+    \begin{itemize}
+    \item When the device disappears
+    \item When the device is unbound from the driver
+    \end{itemize}
+  \item Functions prefixed by \code{devm_}
+  \item See \kdochtml{driver-api/driver-model/devres} for details
+  \end{itemize}
+\end{frame}
+
 \begin{frame}
   \frametitle{devm\_kmalloc functions}
   Allocations with automatic freeing when the corresponding device or module is unprobed.
@@ -345,6 +379,76 @@ kfree(tprops);
   \normalsize
   For use in \code{probe()} functions, in which you have access to a
   \kstruct{device} structure.
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Device managed allocations: memory allocation example}
+  \begin{itemize}
+  \item Normally done with \code{kmalloc(size_t, gfp_t)}, released
+    with \code{kfree(void *)}
+  \item Device managed with \code{devm_kmalloc(struct device *,
+      size_t, gfp_t)}
+  \end{itemize}
+
+  \begin{columns}
+    \column[t]{0.5\textwidth}
+    \begin{block}{Without devm functions}
+\fontsize{6}{6}\selectfont
+    \begin{minted}{c}
+int foo_probe(struct platform_device *pdev)
+{
+        struct foo_t *foo = kmalloc(sizeof(struct foo_t),
+                                    GFP_KERNEL);
+        /* Register to framework, store
+         * reference to framework structure in foo */
+        ...
+        if (failure) {
+                kfree(foo);
+                return -EBUSY;
+        }
+        platform_set_drvdata(pdev, foo);
+        return 0;
+}
+
+void foo_remove(struct platform_device *pdev)
+{
+        struct foo_t *foo = platform_get_drvdata(pdev);
+        /* Retrieve framework structure from foo
+           and unregister it */
+        ...
+        kfree(foo);
+}
+    \end{minted}
+  \end{block}
+    \column[t]{0.5\textwidth}
+    \begin{block}{With devm functions}
+\fontsize{6}{6}\selectfont
+    \begin{minted}{c}
+int foo_probe(struct platform_device *pdev)
+{
+        struct foo_t *foo = devm_kmalloc(&pdev->dev,
+                           sizeof(struct foo_t),
+                           GFP_KERNEL);
+        /* Register to framework, store
+         * reference to framework structure in foo */
+        ...
+        if (failure)
+                return -EBUSY;
+        platform_set_drvdata(pdev, foo);
+        return 0;
+}
+
+void foo_remove(struct platform_device *pdev)
+{
+        struct foo_t *foo = platform_get_drvdata(pdev);
+        /* Retrieve framework structure from foo
+           and unregister it */
+        ...
+        /* foo automatically freed */
+}
+    \end{minted}
+  \end{block}
+\end{columns}
 \end{frame}
 
 \begin{frame}[fragile]

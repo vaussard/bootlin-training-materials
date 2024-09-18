@@ -201,6 +201,12 @@ if (IS_ERR(base))
   \item Sometimes compiler/CPU reordering is not an issue, in this case
     the code may be optimized by dropping the memory barriers, using the
     raw or relaxed helpers
+  \item You can also add a memory barrier by hand if needed:
+    \begin{itemize}
+    \item \kfunc{rmb} is a read memory barrier, prevents reads to cross the barrier
+    \item \kfunc{wmb} is a write memory barrier
+    \item \kfunc{mb} is a read-write memory barrier
+    \end{itemize}
   \item See \kfile{Documentation/memory-barriers.txt}
   \end{itemize}
 \end{frame}
@@ -224,12 +230,12 @@ if (IS_ERR(base))
 \end{itemize}
 \end{frame}
 
-\setuplabframe
-{I/O memory and ports}
-{
-\begin{itemize}
-\item Add UART devices to the board device tree
-\item Access I/O registers to control the device and
-      send first characters to it.
-\end{itemize}
-}
+%\setuplabframe
+%{I/O memory and ports}
+%{
+%\begin{itemize}
+%\item Add UART devices to the board device tree
+%\item Access I/O registers to control the device and
+%      send first characters to it.
+%\end{itemize}
+%}
