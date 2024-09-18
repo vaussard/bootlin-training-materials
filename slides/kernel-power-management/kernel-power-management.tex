@@ -5,10 +5,10 @@
   \begin{itemize}
   \item Several power management \emph{building blocks}
     \begin{itemize}
-    \item Clock framework
+    \item Clock and regulator frameworks
     \item Suspend and resume
-    \item CPUidle
     \item Runtime power management
+    \item CPUidle
     \item Power domains
     \item Frequency and voltage scaling
     \end{itemize}
@@ -96,6 +96,23 @@
 \end{frame}
 
 \begin{frame}
+  \frametitle{Regulator framework}
+  \begin{itemize}
+  \item Modern embedded platforms have hardware responsible for voltage
+    and current regulation
+  \item The regulator framework allows to take advantage of this
+    hardware to save power when parts of the system are unused
+    \begin{itemize}
+    \item A consumer interface for device drivers (i.e. users)
+    \item Regulator driver interface for regulator drivers
+    \item Machine interface for board configuration
+    \item sysfs interface for user space
+    \end{itemize}
+  \item See \kdochtmldir{power/regulator} in kernel documentation.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
   \frametitle{Suspend and resume (to / from RAM)}
   \begin{itemize}
   \item Infrastructure in the kernel to support suspend and resume
@@ -145,6 +162,25 @@
 \end{frame}
 
 \begin{frame}
+  \frametitle{Runtime power management}
+  \begin{itemize}
+  \item Managing per-device idle, each device being managed by its
+        device driver independently from others.
+  \item According to the kernel configuration interface: \emph{Enable
+      functionality allowing I/O devices to be put into energy-saving
+      (low power) states at run time (or autosuspended) after a
+      specified period of inactivity and woken up in response to a
+      hardware-generated wake-up event or a driver's request.}
+  \item New hooks must be added to the drivers:
+    \code{runtime_suspend()}, \code{runtime_resume()},
+    \code{runtime_idle()} in the \kstruct{dev_pm_ops}
+    structure in \kstruct{device_driver}.
+  \item API and details on \kdochtml{power/runtime_pm}
+  \item See \kfile{drivers/net/ethernet/cadence/macb_main.c} again.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
   \frametitle{Saving power in the idle loop}
   \begin{itemize}
   \item The idle loop is what you run when there's nothing left to run
@@ -175,39 +211,6 @@
     \item Available in particular for x86/ACPI and most ARM SoCs
     \item See \kdochtml{admin-guide/pm/cpuidle} in kernel documentation.
     \end{itemize}
-  \end{itemize}
-\end{frame}
-
-\begin{frame}
-  \frametitle{PowerTOP}
-  \url{https://en.wikipedia.org/wiki/PowerTOP}
-  \begin{itemize}
-  \item With dynamic ticks, allows to fix parts of kernel code and
-    applications that wake up the system too often.
-  \item PowerTOP allows to track the worst offenders
-  \item Now available on ARM cpus implementing CPUidle
-  \item Also gives you useful hints for reducing power.
-  \item Try it on your x86 laptop:\\
-	\code{sudo powertop}
-  \end{itemize}
-\end{frame}
-
-\begin{frame}
-  \frametitle{Runtime power management}
-  \begin{itemize}
-  \item Managing per-device idle, each device being managed by its
-        device driver independently from others.
-  \item According to the kernel configuration interface: \emph{Enable
-      functionality allowing I/O devices to be put into energy-saving
-      (low power) states at run time (or autosuspended) after a
-      specified period of inactivity and woken up in response to a
-      hardware-generated wake-up event or a driver's request.}
-  \item New hooks must be added to the drivers:
-    \code{runtime_suspend()}, \code{runtime_resume()},
-    \code{runtime_idle()} in the \kstruct{dev_pm_ops}
-    structure in \kstruct{device_driver}.
-  \item API and details on \kdochtml{power/runtime_pm}
-  \item See \kfile{drivers/net/ethernet/cadence/macb_main.c} again.
   \end{itemize}
 \end{frame}
 
@@ -274,19 +277,16 @@
 \end{frame}
 
 \begin{frame}
-  \frametitle{Regulator framework}
+  \frametitle{PowerTOP}
+  \url{https://en.wikipedia.org/wiki/PowerTOP}
   \begin{itemize}
-  \item Modern embedded platforms have hardware responsible for voltage
-    and current regulation
-  \item The regulator framework allows to take advantage of this
-    hardware to save power when parts of the system are unused
-    \begin{itemize}
-    \item A consumer interface for device drivers (i.e. users)
-    \item Regulator driver interface for regulator drivers
-    \item Machine interface for board configuration
-    \item sysfs interface for user space
-    \end{itemize}
-  \item See \kdochtmldir{power/regulator} in kernel documentation.
+  \item With dynamic ticks, allows to fix parts of kernel code and
+    applications that wake up the system too often.
+  \item PowerTOP allows to track the worst offenders
+  \item Now available on ARM cpus implementing CPUidle
+  \item Also gives you useful hints for reducing power.
+  \item Try it on your x86 laptop:\\
+	\code{sudo powertop}
   \end{itemize}
 \end{frame}
 
