@@ -41,6 +41,7 @@
   \item The process requesting the lock blocks when the lock is
     already held.  Mutexes can therefore only be used in contexts
     where sleeping is allowed.
+  \item Non-recursive \underline{only}
   \item Mutex definition:
     \begin{itemize}
     \item \mint{c}+#include <linux/mutex.h>+
@@ -207,6 +208,41 @@ static unsigned int ulite_tx_empty(struct uart_port *port) {
     \end{minted}
     \end{block}
   \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Locking summary}
+  Minimum locking requirements (see \kdochtml{kernel-hacking/locking}):
+  
+\begin{table}
+\centering
+\begin{tabular}{l|l|l|l|l|}
+                      & \textbf{IRQ Handler} & \textbf{Softirq} & \textbf{Tasklet} & \textbf{User Context}  \\ 
+\hline
+\textbf{IRQ Handler}  & SLIS                 &                  &                  &                        \\ 
+\hline
+\textbf{Softirq}      & SLI                  & SL               &                  &                        \\ 
+\hline
+\textbf{Tasklet}      & SLI                  & SL               & SL               &                        \\ 
+\hline
+\textbf{User Context} & SLI                  & SLBH             & SLBH             & MLI                    \\
+\hline
+\end{tabular}
+\end{table}
+
+\begin{footnotesize}
+% Legends:
+\begin{itemize}
+ \item SLIS: \kfunc{spin_lock_irqsave}
+ \item SLI: \kfunc{spin_lock_irq}
+ \item SL: \kfunc{spin_lock}
+ \item SLBH: \kfunc{spin_lock_bh}
+ \item MLI: \kfunc{mutex_lock_interruptible}
+\end{itemize}
+\end{footnotesize}
+
+For spinlocks: you can always use \kfunc{spin_lock_irqsave} if not sure
+
 \end{frame}
 
 \begin{frame}
@@ -418,11 +454,11 @@ safe_set(int new_a, int new_b)
   \end{columns}
 \end{frame}
 
-\setuplabframe
-{Locking}
-{
-  \begin{itemize}
-  \item Add locking to the driver to prevent concurrent accesses to
-    shared resources
-  \end{itemize}
-}
+%\setuplabframe
+%{Locking}
+%{
+%  \begin{itemize}
+%  \item Add locking to the driver to prevent concurrent accesses to
+%    shared resources
+%  \end{itemize}
+%}
