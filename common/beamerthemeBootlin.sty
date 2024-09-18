@@ -116,17 +116,19 @@
 
 \newcommand\titleframe
 {
-  \begin{frame}{\trainingtitle{} training}
-    \begin{columns}[b]
+\begin{frame}[c]
+    \vspace{1cm}
+    \begin{columns}[c]
       \column{0.5\textwidth}
-      \Large
+      %\Large
+      \huge
       \trainingtitle{} training\\
       \vspace{3em}
       \footnotesize
       \tinyv
       © Copyright 2004-\the\year, Bootlin.\\
       Creative Commons BY-SA 3.0 license.\\
-      Latest update: \lastupdateen{}.\\
+      Latest update: \lastupdateen{} (by Florian Vaussard).\\
       \vspace{1em}
       Document updates and training details:\\
       \url{\trainingurl}\\
@@ -135,7 +137,7 @@
       Send them to \href{mailto:feedback@bootlin.com}{feedback@bootlin.com}
       \column{0.5\textwidth}
       \begin{center}
-        \includegraphics[height=4cm]{common/logo-square.pdf}
+        \includegraphics[width=0.7\textwidth]{common/logo-square-heigvd.pdf}
       \end{center}
     \end{columns}
   \end{frame}
@@ -143,9 +145,10 @@
 
 \AtBeginSection[]
 {
-  \begin{frame}{\insertsectionhead}
-    \begin{columns}[b]
-      \column{0.5\textwidth}
+  \begin{frame}[c]
+    \vspace{1cm}
+    \begin{columns}[c]
+      \column{0.7\textwidth}
       \huge
       \insertsection\\
       \vspace{1.5cm}
@@ -155,9 +158,9 @@
       © Copyright 2004-\the\year, Bootlin.\\
       Creative Commons BY-SA 3.0 license.\\
       Corrections, suggestions, contributions and translations are welcome!
-      \column{0.5\textwidth}
+      \column{0.3\textwidth}
       \begin{center}
-        \includegraphics[scale=0.45]{common/logo-square.pdf}
+        \includegraphics[width=0.8\textwidth]{common/logo-square-heigvd.pdf}
       \end{center}
     \end{columns}
   \end{frame}
