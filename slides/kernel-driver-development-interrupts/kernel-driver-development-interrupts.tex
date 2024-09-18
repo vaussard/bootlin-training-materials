@@ -140,29 +140,6 @@ Err:           0
 \end{itemize}
 \end{frame}
 
-\begin{frame}[fragile]
-  \frametitle{Threaded interrupts}
-  The kernel also supports threaded interrupts:
-  \begin{itemize}
-  \item The interrupt handler is executed inside a thread.
-  \item Allows to block during the interrupt handler, which is often
-        needed for I2C/SPI devices as the interrupt handler needs time
-	to communicate with them.
-  \item Allows to set a priority for the interrupt handler
-        execution, which is useful for real-time usage of Linux
-  \end{itemize}
-  \begin{minted}{c}
-int devm_request_threaded_irq(struct device *dev, unsigned int irq,
-                              irq_handler_t handler, irq_handler_t thread_fn,
-                              unsigned long flags, const char *name,
-                              void *dev);
-  \end{minted}
-  \begin{itemize}
-  \item \code{handler}, ``hard IRQ'' handler
-  \item \code{thread_fn}, executed in a thread
-  \end{itemize}
-\end{frame}
-
 \begin{frame}
   \frametitle{Top half and bottom half processing}
   Splitting the execution of interrupt handlers in 2 parts
@@ -334,6 +311,68 @@ schedule_work(&work_data->work);
   \end{itemize}
 \end{frame}
 
+\begin{frame}[fragile]
+  \frametitle{Threaded interrupts}
+  The kernel also supports threaded interrupts:
+  \begin{itemize}
+  \item The interrupt handler is executed inside a thread.
+  \item Allows to block during the interrupt handler, which is often
+        needed for I2C/SPI devices as the interrupt handler needs time
+	to communicate with them.
+  \item Allows to set a priority for the interrupt handler
+        execution, which is useful for real-time usage of Linux
+  \end{itemize}
+  \begin{minted}{c}
+int devm_request_threaded_irq(struct device *dev, unsigned int irq,
+                              irq_handler_t handler, irq_handler_t thread_fn,
+                              unsigned long flags, const char *name,
+                              void *dev);
+  \end{minted}
+  \begin{itemize}
+  \item \code{handler}, ``hard IRQ'' handler
+  \item \code{thread_fn}, executed in a thread
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Bottom half summary}
+\centering
+\begin{table}
+\resizebox{\linewidth}{!}{%
+\begin{tabular}{l|c|c|c|c|}
+                           & \textbf{softirq} & \textbf{tasklet} & \textbf{threaded IRQ} & \textbf{workqueue}    \\ 
+\hline
+\textbf{Context}           & Interrupt        & Interrupt        & Process               & Process               \\ 
+\hline
+\textbf{Can sleep}         & NO!              & NO!              & Yes                   & Yes (care if shared)  \\ 
+\hline
+\textbf{Dedicated process} & -                & -                & Dedicated             & Dedicated or shared   \\ 
+\hline
+\textbf{Schedule latency}  & "immediate"      & "immediate"      & Scheduled             & Scheduled             \\
+\hline
+\end{tabular}
+}
+\end{table}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Kernel threads (kthread)}
+  \begin{itemize}
+  \item The general mechanism behind threaded IRQ and workqueues (and other things)
+  \item Use a \kstruct{task_struct} like userspace threads, but without a userspace address space
+        and run solely in kernel mode
+  \item Creation:
+    \begin{itemize}
+    \item Use \kfunc{kthread_create} followed by \kfunc{wake_up_process}
+    \item Or simpler: \kfunc{kthread_run}
+    \end{itemize}
+  \item Can be bound to a specific CPU using \kfunc{kthread_bind}
+        (or directly using \kfunc{kthread_run_on_cpu})
+  \item \kfunc{kthread_stop} and \kfunc{kthread_should_stop} similar to pco-synchro ;-)
+  \item To exit the kthread: \code{return;} from its main function
+  \end{itemize}
+\end{frame}
+
 \begin{frame}
   \frametitle{Interrupt management summary}
   \begin{itemize}
@@ -359,14 +398,14 @@ schedule_work(&work_data->work);
   \end{itemize}
 \end{frame}
 
-\setuplabframe
-{Interrupts}
-{
-  \begin{itemize}
-  \item Adding read capability to the character driver developed
-    earlier.
-  \item Register an interrupt handler for each device.
-  \item Waiting for data to be available in the read file operation.
-  \item Waking up the code when data are available from the devices.
-  \end{itemize}
-}
+%\setuplabframe
+%{Interrupts}
+%{
+%  \begin{itemize}
+%  \item Adding read capability to the character driver developed
+%    earlier.
+%  \item Register an interrupt handler for each device.
+%  \item Waiting for data to be available in the read file operation.
+%  \item Waking up the code when data are available from the devices.
+%  \end{itemize}
+%}

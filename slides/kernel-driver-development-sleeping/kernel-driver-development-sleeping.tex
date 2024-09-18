@@ -265,3 +265,18 @@ int read[bwlq]_poll[_timeout[_atomic]](addr, val, cond,
     \end{itemize}
   \end{itemize}
 \end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Sleeping summary}
+\begin{table}
+\begin{tabular}{l|c|c|c|c}
+                            & \textbf{Wait queue}  & \textbf{Completion}  & \textbf{msleep()}    & \textbf{udelay()}  \\ 
+\hline
+\textbf{Use in interrupt}   & Wake-up only         & Wake-up only         & NO!                  & Keep it short      \\ 
+\hline
+\textbf{Schedule latency}   & Scheduled            & Scheduled            & Scheduled            & No                 \\ 
+\hline
+\multicolumn{1}{l}{}        & \multicolumn{1}{l}{} & \multicolumn{1}{l}{} & \multicolumn{1}{l}{} &                   
+\end{tabular}
+\end{table}
+\end{frame}
