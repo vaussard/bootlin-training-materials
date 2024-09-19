@@ -20,7 +20,8 @@ sudo dnf install texlive-appendixnumberbeamer texlive-babel \
         texlive-listings texlive-makecell texlive-mdframed texlive-minted \
         texlive-moreverb texlive-overpic texlive-parskip texlive-setspace \
         texlive-stmaryrd texlive-textpos texlive-titlesec texlive-titling \
-        texlive-ulem texlive-upquote texlive-url texlive-xcolor
+        texlive-ulem texlive-upquote texlive-url texlive-xcolor \
+        levien-inconsolata-fonts
 
 (filtered output of:
 git g usepackage | perl -pe "s/\[.*?\]//" | perl -pe "s/.*?usepackage{(.*?)}.*/\1/" | sort -u | perl -pe "s/^/texlive-/" | perl -pe "s/\n/ /")
